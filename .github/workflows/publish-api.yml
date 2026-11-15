@@ -4,9 +4,9 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'apispec.yaml'
-      - 'apidoc.md'
-      - 'apimetadata.json'
+      - 'v1/apispec.yaml'
+      - 'v1/apidoc.md'
+      - 'v1/apimetadata.json'
 
 permissions:
   id-token: write
