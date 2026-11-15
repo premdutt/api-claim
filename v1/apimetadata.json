@@ -3,10 +3,10 @@
   "version":"v1",
   "business_domain": "HealthInsurance",
   "business_sub_domain": "Claims",
-  "business_owner": "business-owner@example.com",
-  "it_owner": "it-owner@example.com",
+  "business_owner": "pgaur@sun.com",
+  "it_owner": "it-owner@sun.com",
   "it_support_team": {
     "name": "Team support email DL",
-    "email": "team-support@example.com"
+    "email": "team-support@sun.com"
   }
 }
