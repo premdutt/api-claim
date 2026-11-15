@@ -117,7 +117,7 @@ jobs:
         with:
           inlineScript: |
             API_DIR="${{ steps.meta.outputs.api_dir }}"
-            BLOB_PATH="apicatalog/${{ steps.meta.outputs.api_name }}/${{ steps.meta.outputs.api_ver }}"
+            BLOB_PATH="apis/${{ steps.meta.outputs.api_name }}/${{ steps.meta.outputs.api_ver }}"
             STORAGE_ACCT="${{ secrets.AZURE_STORAGE_ACCOUNT }}"
             CONTAINER="apicatalog"
 
