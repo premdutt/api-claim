@@ -4,10 +4,10 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'v1/apispec.yaml'
-      - 'v1/apidoc.md'
-      - 'v1/apimetadata.json'
-  workflow_dispatch: # Enables manual triggering from the GitHub UI
+      - 'apispec.yaml'
+      - 'apidoc.md'
+      - 'apimetadata.json'
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -20,25 +20,39 @@ jobs:
       - name: Checkout Repository Code
         uses: actions/checkout@v4
 
-
-      - name: Debug Secret Availability
+      - name: Debug and Verify Secret Availability
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          if [ -z "${{ secrets.AZURE_CLIENT_ID }}" ]; then
-            echo "AZURE_CLIENT_ID is EMPTY!"
+          MISSING=0
+          if [ -z "$AZURE_CLIENT_ID" ]; then
+            echo "❌ AZURE_CLIENT_ID is missing"
+            MISSING=1
           else
-            echo "AZURE_CLIENT_ID is present (length: ${#{ secrets.AZURE_CLIENT_ID }})"
+            echo "✅ AZURE_CLIENT_ID is present (length: ${#AZURE_CLIENT_ID})"
           fi
-          if [ -z "${{ secrets.AZURE_TENANT_ID }}" ]; then
-            echo "AZURE_TENANT_ID is EMPTY!"
+
+          if [ -z "$AZURE_TENANT_ID" ]; then
+            echo "❌ AZURE_TENANT_ID is missing"
+            MISSING=1
           else
-            echo "AZURE_TENANT_ID is present (length: ${#{ secrets.AZURE_TENANT_ID }})"
+            echo "✅ AZURE_TENANT_ID is present (length: ${#AZURE_TENANT_ID})"
           fi
-          if [ -z "${{ secrets.AZURE_SUBSCRIPTION_ID }}" ]; then
-            echo "AZURE_SUBSCRIPTION_ID is EMPTY!"
+
+          if [ -z "$AZURE_SUBSCRIPTION_ID" ]; then
+            echo "❌ AZURE_SUBSCRIPTION_ID is missing"
+            MISSING=1
           else
-            echo "AZURE_SUBSCRIPTION_ID is present (length: ${#{ secrets.AZURE_SUBSCRIPTION_ID }})"
+            echo "✅ AZURE_SUBSCRIPTION_ID is present (length: ${#AZURE_SUBSCRIPTION_ID})"
           fi
-          
+
+          if [ "$MISSING" -eq 1 ]; then
+            echo "Error: One or more required Azure secrets are missing from GitHub repository settings."
+            exit 1
+          fi
+
       - name: Authenticate to Azure via OIDC
         uses: azure/login@v2
         with:
@@ -49,23 +63,26 @@ jobs:
       - name: Validate and Extract API Metadata & Version
         id: meta
         run: |
-          if [ ! -f v1/apimetadata.json ]; then
-            echo "Error: v1/apimetadata.json not found!"
+          if [ ! -f apimetadata.json ]; then
+            echo "Error: apimetadata.json not found in repository root!"
             exit 1
           fi
 
-          API_NAME=$(jq -r '.apiName' v1/apimetadata.json)
-          API_VER=$(jq -r '.version' v1/apimetadata.json)
+          API_NAME=$(jq -r '.apiName' apimetadata.json)
+          API_VER=$(jq -r '.version' apimetadata.json)
 
           if [ -z "$API_NAME" ] || [ "$API_NAME" == "null" ]; then
-            echo "Error: 'apiName' is missing or null in v1/apimetadata.json"
+            echo "Error: 'apiName' is missing or null in apimetadata.json"
             exit 1
           fi
 
           if [ -z "$API_VER" ] || [ "$API_VER" == "null" ]; then
-            echo "Error: 'version' is missing or null in v1/apimetadata.json"
+            echo "Error: 'version' is missing or null in apimetadata.json"
             exit 1
           fi
+
+          echo "Detected API Name: $API_NAME"
+          echo "Detected API Version: $API_VER"
 
           echo "api_name=$API_NAME" >> $GITHUB_OUTPUT
           echo "api_ver=$API_VER" >> $GITHUB_OUTPUT
@@ -78,26 +95,33 @@ jobs:
             STORAGE_ACCT="${{ secrets.AZURE_STORAGE_ACCOUNT }}"
             CONTAINER="apicatalog"
 
+            echo "Target Blob Path: $BLOB_PATH"
+            
+            echo "Uploading apispec.yaml..."
             az storage blob upload \
               --account-name "$STORAGE_ACCT" \
               --container-name "$CONTAINER" \
               --name "$BLOB_PATH/apispec.yaml" \
-              --file v1/apispec.yaml \
+              --file apispec.yaml \
               --auth-mode login \
               --overwrite
 
+            echo "Uploading apidoc.md..."
             az storage blob upload \
               --account-name "$STORAGE_ACCT" \
               --container-name "$CONTAINER" \
               --name "$BLOB_PATH/apidoc.md" \
-              --file v1/apidoc.md \
+              --file apidoc.md \
               --auth-mode login \
               --overwrite
 
+            echo "Uploading apimetadata.json..."
             az storage blob upload \
               --account-name "$STORAGE_ACCT" \
               --container-name "$CONTAINER" \
               --name "$BLOB_PATH/apimetadata.json" \
-              --file v1/apimetadata.json \
+              --file apimetadata.json \
               --auth-mode login \
               --overwrite
+
+            echo "Successfully published all API artifacts to Azure Blob Storage!"
