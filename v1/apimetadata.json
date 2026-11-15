@@ -1,0 +1,12 @@
+{
+  "apiname":"api-claim",
+  "version":"v1",
+  "business_domain": "HealthInsurance",
+  "business_sub_domain": "Claims",
+  "business_owner": "business-owner@example.com",
+  "it_owner": "it-owner@example.com",
+  "it_support_team": {
+    "name": "Team support email DL",
+    "email": "team-support@example.com"
+  }
+}
