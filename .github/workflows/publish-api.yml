@@ -92,11 +92,11 @@ jobs:
 
           echo "Resolved Version Directory: $API_DIR"
 
-          API_NAME=$(jq -r '.apiName' "$META_FILE")
+          API_NAME=$(jq -r '.apiname' "$META_FILE")
           API_VER=$(jq -r '.version' "$META_FILE")
 
           if [ -z "$API_NAME" ] || [ "$API_NAME" == "null" ]; then
-            echo "Error: 'apiName' is missing or null in $META_FILE"
+            echo "Error: 'apiname' is missing or null in $META_FILE"
             exit 1
           fi
 
