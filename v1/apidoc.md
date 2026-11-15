@@ -8,7 +8,7 @@ claims, then submit draft claims for review.
 All endpoints are relative to:
 
 ```text
-https://api.example.com/v1
+https://api.sun.com/v1
 ```
 
 Replace `https://api.example.com` with the host for your environment. Requests
