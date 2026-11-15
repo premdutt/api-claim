@@ -4,10 +4,15 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'apispec.yaml'
-      - 'apidoc.md'
-      - 'apimetadata.json'
+      - 'v*/apispec.yaml'
+      - 'v*/apidoc.md'
+      - 'v*/apimetadata.json'
   workflow_dispatch:
+    inputs:
+      version_dir:
+        description: 'Version folder to publish (e.g., v1, v2) - leave blank for latest'
+        required: false
+        type: string
 
 permissions:
   id-token: write
@@ -19,6 +24,8 @@ jobs:
     steps:
       - name: Checkout Repository Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Debug and Verify Secret Availability
         env:
@@ -63,27 +70,45 @@ jobs:
       - name: Validate and Extract API Metadata & Version
         id: meta
         run: |
-          if [ ! -f apimetadata.json ]; then
-            echo "Error: apimetadata.json not found in repository root!"
+          # 1. Use manual input if provided via workflow_dispatch
+          if [ -n "${{ github.event.inputs.version_dir }}" ]; then
+            API_DIR="${{ github.event.inputs.version_dir }}"
+          # 2. On push, detect the version folder modified in the latest commit
+          elif [ "${{ github.event_name }}" == "push" ]; then
+            API_DIR=$(git diff --name-only HEAD~1 HEAD | grep -E '^v[0-9]+/' | cut -d'/' -f1 | sort -V | tail -n 1)
+          fi
+
+          # 3. Fallback: pick the highest version folder present in the repository
+          if [ -z "$API_DIR" ]; then
+            API_DIR=$(find . -maxdepth 1 -type d -regex './v[0-9]+' | sed 's|^\./||' | sort -V | tail -n 1)
+          fi
+
+          META_FILE="$API_DIR/apimetadata.json"
+
+          if [ -z "$API_DIR" ] || [ ! -f "$META_FILE" ]; then
+            echo "Error: apimetadata.json not found in resolved directory ('$API_DIR')!"
             exit 1
           fi
 
-          API_NAME=$(jq -r '.apiName' apimetadata.json)
-          API_VER=$(jq -r '.version' apimetadata.json)
+          echo "Resolved Version Directory: $API_DIR"
+
+          API_NAME=$(jq -r '.apiName' "$META_FILE")
+          API_VER=$(jq -r '.version' "$META_FILE")
 
           if [ -z "$API_NAME" ] || [ "$API_NAME" == "null" ]; then
-            echo "Error: 'apiName' is missing or null in apimetadata.json"
+            echo "Error: 'apiName' is missing or null in $META_FILE"
             exit 1
           fi
 
           if [ -z "$API_VER" ] || [ "$API_VER" == "null" ]; then
-            echo "Error: 'version' is missing or null in apimetadata.json"
+            echo "Error: 'version' is missing or null in $META_FILE"
             exit 1
           fi
 
           echo "Detected API Name: $API_NAME"
           echo "Detected API Version: $API_VER"
 
+          echo "api_dir=$API_DIR" >> $GITHUB_OUTPUT
           echo "api_name=$API_NAME" >> $GITHUB_OUTPUT
           echo "api_ver=$API_VER" >> $GITHUB_OUTPUT
 
@@ -91,10 +116,12 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
+            API_DIR="${{ steps.meta.outputs.api_dir }}"
             BLOB_PATH="apicatalog/${{ steps.meta.outputs.api_name }}/${{ steps.meta.outputs.api_ver }}"
             STORAGE_ACCT="${{ secrets.AZURE_STORAGE_ACCOUNT }}"
             CONTAINER="apicatalog"
 
+            echo "Source Directory: $API_DIR"
             echo "Target Blob Path: $BLOB_PATH"
             
             echo "Uploading apispec.yaml..."
@@ -102,7 +129,7 @@ jobs:
               --account-name "$STORAGE_ACCT" \
               --container-name "$CONTAINER" \
               --name "$BLOB_PATH/apispec.yaml" \
-              --file apispec.yaml \
+              --file "$API_DIR/apispec.yaml" \
               --auth-mode login \
               --overwrite
 
@@ -111,7 +138,7 @@ jobs:
               --account-name "$STORAGE_ACCT" \
               --container-name "$CONTAINER" \
               --name "$BLOB_PATH/apidoc.md" \
-              --file apidoc.md \
+              --file "$API_DIR/apidoc.md" \
               --auth-mode login \
               --overwrite
 
@@ -120,7 +147,7 @@ jobs:
               --account-name "$STORAGE_ACCT" \
               --container-name "$CONTAINER" \
               --name "$BLOB_PATH/apimetadata.json" \
-              --file apimetadata.json \
+              --file "$API_DIR/apimetadata.json" \
               --auth-mode login \
               --overwrite
 
