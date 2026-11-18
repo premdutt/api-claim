@@ -1,6 +1,6 @@
 # Claims API
 
-Version **1.0.0** of the Claims API lets clients create and manage Health insurance
+Version **1.0.0** of the Claims API lets clients create and manage Health Payer insurance
 claims, then submit draft claims for review.
 
 ## Base URL
