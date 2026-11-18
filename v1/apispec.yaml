@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Claims API
-  description: API for creating, managing, and submitting insurance claims for healthcare payer industry.
+  description: This is an API for creating, managing, and submitting insurance claims for healthcare payer industry.
   version: 1.0.0
 servers:
   - url: /v1
