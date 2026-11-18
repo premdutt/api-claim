@@ -1,5 +1,5 @@
 {
-  "apiname":"api-claim",
+  "apiname":"api-claims",
   "version":"v1",
   "business_domain": "HealthInsurance-Payer",
   "business_sub_domain": "Claims",
