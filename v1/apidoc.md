@@ -13,7 +13,7 @@ https://api.sun.com/v1
 
 Replace `https://api.example.com` with the host for your environment. Requests
 and responses use JSON (`Content-Type: application/json`). Authentication
-requirements are not defined by this API contract.
+requirements are not defined by this API contract. The Claims api is used for testing purpose
 
 ## Claim lifecycle
 
