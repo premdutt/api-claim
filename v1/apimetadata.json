@@ -1,7 +1,7 @@
 {
   "apiname":"api-claims",
   "version":"v1",
-  "business_domain": "HealthInsurance-Payer2",
+  "business_domain": "HealthInsurance-Payer3",
   "business_sub_domain": "Claims",
   "business_owner": "pgaur@sun.com",
   "it_owner": "it-owner@sun.com",
